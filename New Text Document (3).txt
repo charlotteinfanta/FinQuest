@@ -1,0 +1,140 @@
+// Simple interactive prototype JS
+document.addEventListener('DOMContentLoaded', () => {
+  const splash = document.getElementById('splash');
+  const app = document.getElementById('app');
+  const getStarted = document.getElementById('get-started');
+  const pages = {
+    dashboard: document.getElementById('dashboard'),
+    lesson: document.getElementById('lesson'),
+    quiz: document.getElementById('quiz'),
+    parent: document.getElementById('parent'),
+    profile: document.getElementById('profile'),
+  };
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const actionButtons = document.querySelectorAll('[data-action]');
+  const coinsEl = document.getElementById('coins');
+  const profileCoins = document.getElementById('profile-coins');
+  const botBody = document.getElementById('bot-body');
+  const botInput = document.getElementById('bot-input');
+  const botSend = document.getElementById('bot-send');
+
+  let state = {
+    coins: 120,
+    current: 'dashboard'
+  };
+
+  function showScreen(name){
+    Object.values(pages).forEach(p => p.classList.add('hidden'));
+    if(pages[name]) pages[name].classList.remove('hidden');
+    state.current = name;
+    // update nav active
+    navBtns.forEach(b => b.classList.toggle('active', b.dataset.nav === name));
+  }
+
+  // start app
+  getStarted.addEventListener('click', () => {
+    splash.classList.remove('active');
+    app.classList.add('active');
+    showScreen('dashboard');
+  });
+
+  // bottom nav
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const nav = btn.dataset.nav;
+      if(nav === 'lessons') showScreen('lesson');
+      else if(nav === 'quests') showScreen('dashboard');
+      else if(nav === 'profile') showScreen('profile');
+      else showScreen('dashboard');
+    });
+  });
+
+  // action buttons
+  actionButtons.forEach(btn => {
+    btn.addEventListener('click', e => {
+      const act = btn.dataset.action;
+      if(act === 'open-lesson'){
+        const l = btn.dataset.lesson || 'budgeting-101';
+        document.getElementById('lesson-title').innerText = (l === 'budgeting-101') ? 'Budgeting 101' : (l === 'saving-smart' ? 'Saving Smart' : 'Intro to Investing');
+        showScreen('lesson');
+      }
+      if(act === 'go-dashboard') showScreen('dashboard');
+      if(act === 'close-quiz') showScreen('lesson');
+    });
+  });
+
+  // start quiz
+  const startQuiz = document.getElementById('start-quiz');
+  if(startQuiz){
+    startQuiz.addEventListener('click', () => {
+      startMiniQuiz();
+      showScreen('quiz');
+    });
+  }
+
+  // simple quiz implementation
+  function startMiniQuiz(){
+    const quizBody = document.getElementById('quiz-body');
+    quizBody.innerHTML = '';
+    const questions = [
+      {q:'Which of these is a monthly fixed expense?', a:['Savings','Electricity bill','Impulse shopping'], correct:1},
+      {q:'Emergency fund should cover approx how many months?', a:['1 month','3-6 months','12 months'], correct:1},
+      {q:'What is a SIP?', a:['Single instant purchase','Systematic Investment Plan','Short Interest Plan'], correct:1}
+    ];
+    let index = 0, score = 0;
+    renderQuestion();
+
+    function renderQuestion(){
+      quizBody.innerHTML = '';
+      const ques = questions[index];
+      const card = document.createElement('div'); card.className='lesson-card';
+      const qEl = document.createElement('p'); qEl.innerHTML = `<strong>Q${index+1}:</strong> ${ques.q}`;
+      card.appendChild(qEl);
+      ques.a.forEach((opt,i) => {
+        const btn = document.createElement('button'); btn.className='btn outline'; btn.style.display='block'; btn.style.margin='8px 0';
+        btn.innerText = opt;
+        btn.addEventListener('click', () => {
+          if(i === ques.correct) score++;
+          index++;
+          if(index < questions.length) renderQuestion(); else finishQuiz();
+        });
+        card.appendChild(btn);
+      });
+      quizBody.appendChild(card);
+    }
+
+    function finishQuiz(){
+      quizBody.innerHTML = '';
+      const res = document.createElement('div'); res.className='lesson-card';
+      res.innerHTML = `<h4>Completed!</h4><p>Your score: ${score} / ${questions.length}</p>`;
+      const rewardBtn = document.createElement('button'); rewardBtn.className='btn primary'; rewardBtn.innerText='Claim Reward';
+      rewardBtn.addEventListener('click', () => {
+        const reward = 100 + (score * 20);
+        state.coins += reward;
+        coinsEl.innerText = `💰 ${state.coins}`;
+        profileCoins.innerText = state.coins;
+        rewardBtn.disabled = true;
+        rewardBtn.innerText = 'Reward claimed';
+      });
+      res.appendChild(rewardBtn);
+      quizBody.appendChild(res);
+    }
+  }
+
+  // simple bot interaction
+  botSend.addEventListener('click', () => {
+    const text = botInput.value.trim();
+    if(!text) return;
+    const userEl = document.createElement('div'); userEl.className='bot-msg'; userEl.style.textAlign='right'; userEl.innerText = text;
+    botBody.appendChild(userEl);
+    botInput.value='';
+    // mock AI reply
+    const reply = document.createElement('div'); reply.className='bot-msg'; reply.style.marginTop='8px';
+    reply.innerText = "Good question! Try saving 10% of pocket money and building a small emergency fund. Want a 3-step plan?";
+    setTimeout(()=> botBody.appendChild(reply), 600);
+    botBody.scrollTop = botBody.scrollHeight;
+  });
+
+  // profile button open parent view
+  document.getElementById('profile-btn').addEventListener('click', () => showScreen('profile'));
+});
